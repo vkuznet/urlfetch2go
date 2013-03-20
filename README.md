@@ -20,7 +20,8 @@ go build urlfetch_proxy.go
 ```
 
 It will build ```urlfetch_proxy``` executable which you can fetch from UNIX shell.
-By default it serves request on port 8000, feel free to modify code accoringly.
+By default it serves requests on localhost:8000/getdata,
+feel free to modify code accoringly.
 
 I also provided a simple python client to demonstrate the usage of proxy
 server. Modify code accoringly for your favorite URLs and run it as following:
