@@ -2,6 +2,8 @@
 *.o
 *.a
 *.so
+*.un~
+*.pyc
 
 # Folders
 _obj
