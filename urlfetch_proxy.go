@@ -15,7 +15,6 @@ import (
     "os"
     "fmt"
     "log"
-    "time"
     "strings"
     "net/http"
     "io/ioutil"
@@ -76,7 +75,7 @@ func getdata(url string, ch chan<- []byte) {
     body, err := ioutil.ReadAll(resp.Body)
     if  err != nil {
         msg := "Fail to parse reponse body"
-        log.Println(time.Now(), msg, err)
+        log.Println(msg, err)
         ch <- []byte(msg)
         return
     }
@@ -134,7 +133,7 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
             urls = strings.Split(v[0], "\n")
         }
     }
-    log.Println(time.Now(), urls)
+    log.Println(urls)
 
     // loop concurently over url list and store results into channel
     ch := make(chan []byte)
@@ -146,6 +145,7 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
     // once channels are ready fill out results to response writer
     for i:=0; i<n; i++ {
         w.Write(<-ch)
+        w.Write([]byte("\n"))
     }
 }
 
@@ -158,7 +158,7 @@ func server(port string) {
     // ListenAndServeTLS(addr string, certFile string, keyFile string, handler
     // Handler)
     if  err != nil {
-        log.Fatal(time.Now(), "ListenAndServe: ", err)
+        log.Fatal("ListenAndServe: ", err)
     }
 }
 
