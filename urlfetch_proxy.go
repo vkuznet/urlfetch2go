@@ -6,6 +6,7 @@
  *              "/getdata" which accepts urls as newline separated encoded
  *              string
  * Created    : Wed Mar 20 13:29:48 EDT 2013
+ * License    : MIT
  *
  */
 package main
