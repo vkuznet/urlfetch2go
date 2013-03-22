@@ -4,6 +4,7 @@
 *.so
 *.un~
 *.pyc
+urlfetch2go
 
 # Folders
 _obj
