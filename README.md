@@ -16,10 +16,10 @@ server for data retrieval.
 To compile the URL server you need a Go compiler, then perform the following:
 
 ```
-go build urlfetch_proxy.go
+go build
 ```
 
-It will build ```urlfetch_proxy``` executable which you can fetch from UNIX shell.
+It will build ```urlfetch2go``` executable which you can fetch from UNIX shell.
 By default it serves requests on localhost:8000/getdata,
 feel free to modify code accoringly.
 
