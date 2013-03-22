@@ -3,13 +3,13 @@ GOPATH:=$(PWD)
 all: build install
 
 build:
-	go build
+	go clean; rm -rf pkg; go build
 
 install:
 	go install
 
 clean:
-	go clean
+	go clean; rm -rf pkg
 
 test:
 	cd src/urlfetch; go test
