@@ -50,21 +50,28 @@ func get_certs() []tls.Certificate {
 }
 
 /*
- * getdata(url string, ch chan<- []byte)
- * Fetches data for given URL and redirect response body to given channel
+ *
  */
-func getdata(url string, ch chan<- []byte) {
-    msg := ""
+func http_client() *http.Client {
+    // create HTTP client
     certs := get_certs()
     if  len(certs) == 0 {
-        msg = "Unable to fullfill your request, no server X509 certificate\n"
-        ch <- []byte(msg)
-        return
+        client := &http.Client{}
+        return client
     }
     tr := &http.Transport{
         TLSClientConfig: &tls.Config{tls.Certificates: certs},
     }
     client := &http.Client{Transport: tr}
+    return client
+}
+
+/*
+ * getdata(url string, ch chan<- []byte)
+ * Fetches data for given URL and redirect response body to given channel
+ */
+func getdata(client *http.Client, url string, ch chan<- []byte) {
+    msg := ""
     resp, err := client.Get(url)
     if  err != nil {
         msg = "Fail to contact " + url
@@ -74,7 +81,7 @@ func getdata(url string, ch chan<- []byte) {
     defer resp.Body.Close()
     body, err := ioutil.ReadAll(resp.Body)
     if  err != nil {
-        msg := "Fail to parse reponse body"
+        msg = "Fail to parse reponse body"
         log.Println(msg, err)
         ch <- []byte(msg)
         return
@@ -82,49 +89,16 @@ func getdata(url string, ch chan<- []byte) {
     ch <- body
 }
 
-// Helper function to append bytes to existing slice
-func AppendByte(slice []byte, data []byte) []byte {
-    m := len(slice)
-    n := m + len(data)
-    if n > cap(slice) { // if necessary, reallocate
-        // allocate double what's needed, for future growth.
-        newSlice := make([]byte, (n+1)*2)
-        copy(newSlice, slice)
-        slice = newSlice
-    }
-    slice = slice[0:n]
-    copy(slice[m:n], data)
-    return slice
-}
-
-/*
- * concurrent worker wrapper around getdata fucntion
- * it creates a channel and runs getdata concurrently to fetch data from given
- * url and stored them into the channel. All results are combined and copied
- * into output buffer.
- */
-func getdata4urls(urls []string) []byte {
-    ch := make(chan []byte)
-    n := 0
-    for _, url := range urls {
-        n++
-        go getdata(url, ch)
-    }
-    out := []byte{}
-    for i:=0; i<n; i++ {
-        out = AppendByte(out, <-ch)
-    }
-    return out
-}
-
 /*
  * RequestHandler is used by web server to handle incoming requests
  */
 func RequestHandler(w http.ResponseWriter, r *http.Request) {
+    // we only accept POST request with urls (this is by design)
     if  r.Method != "POST" {
         w.WriteHeader(http.StatusBadRequest)
         return
     }
+
     // parse input request parameter, in this case we should pass urls
     r.ParseForm()
     urls := []string{}
@@ -135,12 +109,15 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
     }
     log.Println(urls)
 
+    // create HTTP client
+    client := http_client()
+
     // loop concurently over url list and store results into channel
     ch := make(chan []byte)
     n := 0
     for _, url := range urls {
         n++
-        go getdata(url, ch)
+        go getdata(client, url, ch)
     }
     // once channels are ready fill out results to response writer
     for i:=0; i<n; i++ {
@@ -166,19 +143,25 @@ func server(port string) {
  * Test functions
  */
 func test_getdata4urls(urls []string) {
+    // create HTTP client
+    client := http_client()
+
     ch := make(chan []byte)
     n := 0
     for _, url := range urls {
         n++
-        go getdata(url, ch)
+        go getdata(client, url, ch)
     }
     for i:=0; i<n; i++ {
         fmt.Println(string(<-ch))
     }
 }
 func test_getdata(url string) {
+    // create HTTP client
+    client := http_client()
+
     ch := make(chan []byte)
-    go getdata(url, ch)
+    go getdata(client, url, ch)
     fmt.Println(string(<-ch))
 }
 func test() {
