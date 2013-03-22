@@ -24,46 +24,45 @@ import (
 /*
  * Return array of certificates
  */
-func get_certs() []tls.Certificate {
+func get_certs() (tls_certs []tls.Certificate) {
     uproxy := os.Getenv("X509_USER_PROXY")
     uckey  := os.Getenv("X509_USER_KEY")
     ucert  := os.Getenv("X509_USER_CERT")
-    tls_certs := []tls.Certificate{}
     if  len(uproxy) > 0 {
         x509cert, err := tls.LoadX509KeyPair(uproxy, uproxy)
         if  err != nil {
             fmt.Println("Fail to parser proxy X509 certificate", err)
-            return []tls.Certificate{}
+            return
         }
         tls_certs = []tls.Certificate{x509cert}
     } else if len(uckey) > 0 {
         x509cert, err := tls.LoadX509KeyPair(ucert, uckey)
         if  err != nil {
             fmt.Println("Fail to parser user X509 certificate", err)
-            return []tls.Certificate{}
+            return
         }
         tls_certs = []tls.Certificate{x509cert}
     } else {
-        return []tls.Certificate{}
+        return
     }
-    return tls_certs
+    return
 }
 
 /*
  *
  */
-func http_client() *http.Client {
+func http_client() (client *http.Client) {
     // create HTTP client
     certs := get_certs()
     if  len(certs) == 0 {
-        client := &http.Client{}
-        return client
+        client = &http.Client{}
+        return
     }
     tr := &http.Transport{
         TLSClientConfig: &tls.Config{tls.Certificates: certs},
     }
-    client := &http.Client{Transport: tr}
-    return client
+    client = &http.Client{Transport: tr}
+    return
 }
 
 /*
