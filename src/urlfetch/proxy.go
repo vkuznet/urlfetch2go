@@ -13,7 +13,6 @@ package urlfetch
 
 import (
     "os"
-    "fmt"
     "log"
     "strings"
     "net/http"
@@ -28,17 +27,20 @@ func Certs() (tls_certs []tls.Certificate) {
     uproxy := os.Getenv("X509_USER_PROXY")
     uckey  := os.Getenv("X509_USER_KEY")
     ucert  := os.Getenv("X509_USER_CERT")
+    log.Println("X509_USER_PROXY", uproxy)
+    log.Println("X509_USER_KEY", uckey)
+    log.Println("X509_USER_CERT", ucert)
     if  len(uproxy) > 0 {
         x509cert, err := tls.LoadX509KeyPair(uproxy, uproxy)
         if  err != nil {
-            fmt.Println("Fail to parser proxy X509 certificate", err)
+            log.Println("Fail to parser proxy X509 certificate", err)
             return
         }
         tls_certs = []tls.Certificate{x509cert}
     } else if len(uckey) > 0 {
         x509cert, err := tls.LoadX509KeyPair(ucert, uckey)
         if  err != nil {
-            fmt.Println("Fail to parser user X509 certificate", err)
+            log.Println("Fail to parser user X509 certificate", err)
             return
         }
         tls_certs = []tls.Certificate{x509cert}
@@ -75,6 +77,7 @@ func Getdata(client *http.Client, url string, ch chan<- []byte) {
     resp, err := client.Get(url)
     if  err != nil {
         msg = "Fail to contact " + url
+        log.Println(msg, err)
         ch <- []byte(msg)
         return
     }
@@ -107,7 +110,7 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
             urls = strings.Split(v[0], "\n")
         }
     }
-    log.Println(urls)
+//    log.Println(urls)
 
     // create HTTP client
     client := HttpClient()
@@ -128,6 +131,7 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
 
 // proxy server. It defines /getdata public interface
 func Server(port string) {
+    log.Printf("Start server localhost:%s/getdata", port)
     http.HandleFunc("/getdata", RequestHandler)
     err := http.ListenAndServe(":" + port, nil)
     // NOTE: later this can be replaced with secure connection
