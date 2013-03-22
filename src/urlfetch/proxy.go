@@ -67,12 +67,14 @@ func HttpClient() (client *http.Client) {
     return
 }
 
+// create global HTTP client and re-use it through the code
+var client = HttpClient()
+
 /*
- * Getdata(client *http.Client, url string, ch chan<- []byte)
- * Using given client and chanel fetches data for provided URL.
- * Results are redirected to specified channel
+ * Getdata(url string, ch chan<- []byte)
+ * Fetch data for provided URL and redirect results to given channel
  */
-func Getdata(client *http.Client, url string, ch chan<- []byte) {
+func Getdata(url string, ch chan<- []byte) {
     msg := ""
     resp, err := client.Get(url)
     if  err != nil {
@@ -110,20 +112,23 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
             urls = strings.Split(v[0], "\n")
         }
     }
-//    log.Println(urls)
-
-    // create HTTP client
-    client := HttpClient()
+    num := len(urls)
+    if  num > 0 {
+        first := urls[0]
+        last := urls[num-1]
+        log.Println("Fetch", num, "URLs:", first, "...", last)
+    } else {
+        w.Write([]byte("No URLs provided\n"))
+        return
+    }
 
     // loop concurently over url list and store results into channel
     ch := make(chan []byte)
-    n := 0
     for _, url := range urls {
-        n++
-        go Getdata(client, url, ch)
+        go Getdata(url, ch)
     }
     // once channels are ready fill out results to response writer
-    for i:=0; i<n; i++ {
+    for i:=0; i<len(urls); i++ {
         w.Write(<-ch)
         w.Write([]byte("\n"))
     }
