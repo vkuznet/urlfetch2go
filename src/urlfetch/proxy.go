@@ -9,7 +9,7 @@
  * License    : MIT
  *
  */
-package main
+package urlfetch
 
 import (
     "os"
@@ -24,7 +24,7 @@ import (
 /*
  * Return array of certificates
  */
-func get_certs() (tls_certs []tls.Certificate) {
+func Certs() (tls_certs []tls.Certificate) {
     uproxy := os.Getenv("X509_USER_PROXY")
     uckey  := os.Getenv("X509_USER_KEY")
     ucert  := os.Getenv("X509_USER_CERT")
@@ -49,11 +49,11 @@ func get_certs() (tls_certs []tls.Certificate) {
 }
 
 /*
- *
+ * HTTP client for urlfetch server
  */
-func http_client() (client *http.Client) {
+func HttpClient() (client *http.Client) {
     // create HTTP client
-    certs := get_certs()
+    certs := Certs()
     if  len(certs) == 0 {
         client = &http.Client{}
         return
@@ -66,10 +66,11 @@ func http_client() (client *http.Client) {
 }
 
 /*
- * getdata(url string, ch chan<- []byte)
- * Fetches data for given URL and redirect response body to given channel
+ * Getdata(client *http.Client, url string, ch chan<- []byte)
+ * Using given client and chanel fetches data for provided URL.
+ * Results are redirected to specified channel
  */
-func getdata(client *http.Client, url string, ch chan<- []byte) {
+func Getdata(client *http.Client, url string, ch chan<- []byte) {
     msg := ""
     resp, err := client.Get(url)
     if  err != nil {
@@ -109,14 +110,14 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
     log.Println(urls)
 
     // create HTTP client
-    client := http_client()
+    client := HttpClient()
 
     // loop concurently over url list and store results into channel
     ch := make(chan []byte)
     n := 0
     for _, url := range urls {
         n++
-        go getdata(client, url, ch)
+        go Getdata(client, url, ch)
     }
     // once channels are ready fill out results to response writer
     for i:=0; i<n; i++ {
@@ -125,7 +126,8 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-func server(port string) {
+// proxy server. It defines /getdata public interface
+func Server(port string) {
     http.HandleFunc("/getdata", RequestHandler)
     err := http.ListenAndServe(":" + port, nil)
     // NOTE: later this can be replaced with secure connection
@@ -136,47 +138,5 @@ func server(port string) {
     if  err != nil {
         log.Fatal("ListenAndServe: ", err)
     }
-}
-
-/*
- * Test functions
- */
-func test_getdata4urls(urls []string) {
-    // create HTTP client
-    client := http_client()
-
-    ch := make(chan []byte)
-    n := 0
-    for _, url := range urls {
-        n++
-        go getdata(client, url, ch)
-    }
-    for i:=0; i<n; i++ {
-        fmt.Println(string(<-ch))
-    }
-}
-func test_getdata(url string) {
-    // create HTTP client
-    client := http_client()
-
-    ch := make(chan []byte)
-    go getdata(client, url, ch)
-    fmt.Println(string(<-ch))
-}
-func test() {
-    url1 := "http://www.google.com"
-    url2 := "http://www.golang.org"
-    urls := []string{url1, url2}
-    fmt.Println("TEST: test_getdata")
-    test_getdata(url1)
-    fmt.Println("TEST: test_getdata4urls")
-    test_getdata4urls(urls)
-}
-
-/*
- * MAIN
- */
-func main() {
-    server("8000")
 }
 
