@@ -14,7 +14,7 @@ func parse(output string) bool {
 func test_getdata4urls(urls []string) bool {
     ch := make(chan []byte)
     for _, url := range urls {
-        go Getdata(url, ch)
+        go Fetch(url, ch)
     }
     for i := 0; i<len(urls); i++ {
         res := string(<-ch)
@@ -26,13 +26,13 @@ func test_getdata4urls(urls []string) bool {
 }
 func test_getdata(url string) bool {
     ch := make(chan []byte)
-    go Getdata(url, ch)
+    go Fetch(url, ch)
     res := string(<-ch)
     return parse(res)
 }
 
 // Test function
-func TestGetdata(t *testing.T) {
+func TestFetch(t *testing.T) {
     url1 := "http://www.google.com"
     url2 := "http://www.golang.org"
     urls := []string{url1, url2}
