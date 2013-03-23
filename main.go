@@ -1,7 +1,11 @@
 package main
 
 import "urlfetch"
+import "flag"
 
 func main() {
-    urlfetch.Server("8000")
+    var port string
+    flag.StringVar(&port, "port", "8000", "URL fetch server port number")
+    flag.Parse()
+    urlfetch.Server(port)
 }
