@@ -3,7 +3,7 @@
  * Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
  * Description: URL fetch proxy server concurrently fetches data from
  *              provided URL list. It provides a POST HTTP interface
- *              "/getdata" which accepts urls as newline separated encoded
+ *              "/fetch" which accepts urls as newline separated encoded
  *              string
  * Created    : Wed Mar 20 13:29:48 EDT 2013
  * License    : MIT
@@ -71,10 +71,10 @@ func HttpClient() (client *http.Client) {
 var client = HttpClient()
 
 /*
- * Getdata(url string, ch chan<- []byte)
+ * Fetch(url string, ch chan<- []byte)
  * Fetch data for provided URL and redirect results to given channel
  */
-func Getdata(url string, ch chan<- []byte) {
+func Fetch(url string, ch chan<- []byte) {
     msg := ""
     resp, err := client.Get(url)
     if  err != nil {
@@ -125,7 +125,7 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
     // loop concurently over url list and store results into channel
     ch := make(chan []byte)
     for _, url := range urls {
-        go Getdata(url, ch)
+        go Fetch(url, ch)
     }
     // once channels are ready fill out results to response writer
     for i:=0; i<len(urls); i++ {
@@ -134,10 +134,10 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-// proxy server. It defines /getdata public interface
+// proxy server. It defines /fetch public interface
 func Server(port string) {
-    log.Printf("Start server localhost:%s/getdata", port)
-    http.HandleFunc("/getdata", RequestHandler)
+    log.Printf("Start server localhost:%s/fetch", port)
+    http.HandleFunc("/fetch", RequestHandler)
     err := http.ListenAndServe(":" + port, nil)
     // NOTE: later this can be replaced with secure connection
     // replace ListenAndServe(addr string, handler Handler)
