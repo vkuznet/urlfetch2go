@@ -3,7 +3,7 @@ GOPATH:=$(PWD)
 all: build install
 
 build:
-	go clean; rm -rf pkg; go build
+	go clean; rm -rf pkg; go build -x
 
 install:
 	go install
