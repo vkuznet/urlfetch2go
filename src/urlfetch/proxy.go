@@ -18,6 +18,7 @@ import (
     "net/http"
     "io/ioutil"
     "crypto/tls"
+    "x509proxy"
 )
 
 /*
@@ -31,7 +32,9 @@ func Certs() (tls_certs []tls.Certificate) {
     log.Println("X509_USER_KEY", uckey)
     log.Println("X509_USER_CERT", ucert)
     if  len(uproxy) > 0 {
-        x509cert, err := tls.LoadX509KeyPair(uproxy, uproxy)
+//        x509cert, err := tls.LoadX509KeyPair(uproxy, uproxy)
+        // use local implementation of LoadX409KeyPair, see x509proxy.go
+        x509cert, err := x509proxy.LoadX509Proxy(uproxy)
         if  err != nil {
             log.Println("Fail to parser proxy X509 certificate", err)
             return
