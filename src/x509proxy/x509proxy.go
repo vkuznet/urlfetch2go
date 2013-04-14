@@ -1,10 +1,13 @@
 package x509proxy
-//package urlfetch
 
 import "io/ioutil"
 import "fmt"
 import "regexp"
 import "crypto/tls"
+import "crypto/x509"
+import "encoding/pem"
+import "errors"
+import "crypto/rsa"
 
 // Helper function to append bytes to existing slice
 func AppendByte(slice []byte, data []byte) []byte {
@@ -47,7 +50,7 @@ func getData(mkey string, block []byte) (keyBlock []byte) {
     return
 }
 // LoadX509Proxy reads and parses a chained proxy file
-// which contains PEN encoded data. It returns X509KeyPair.
+// which contains PEM encoded data. It returns X509KeyPair.
 func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
         // read CERTIFICATE blocks
         certBlock, err := ioutil.ReadFile(proxyFile)
@@ -55,7 +58,7 @@ func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
             return
         }
         certPEMBlock := getData("CERTIFICATE", certBlock)
-        fmt.Println(string(certPEMBlock))
+//        fmt.Println(string(certPEMBlock))
 
         // read KEY block
         keyBlock, err := ioutil.ReadFile(proxyFile)
@@ -63,18 +66,56 @@ func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
             return
         }
         keyPEMBlock := getData("KEY", keyBlock)
-        // test
-        testBlock, err := ioutil.ReadFile("x509up_u502")
-        fmt.Println(string(testBlock))
-        if  string(testBlock) != string(keyPEMBlock) {
-            fmt.Println("KEYS DIFFER", len(testBlock), len(keyPEMBlock))
-            fmt.Println("testblock")
-            fmt.Println(testBlock)
-            fmt.Println("keyPEMBlock")
-            fmt.Println(keyPEMBlock)
-            newline := []byte("\n")
-            fmt.Println("newline", newline)
-        }
 
-        return tls.X509KeyPair(certPEMBlock, keyPEMBlock)
+//        return tls.X509KeyPair(certPEMBlock, keyPEMBlock)
+        return X509KeyPair(certPEMBlock, keyPEMBlock)
+}
+
+// X509KeyPair parses a public/private key pair from a pair of
+// PEM encoded data.
+func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (cert tls.Certificate, err error) {
+    fmt.Println("CALL local X509KeyPair")
+	var certDERBlock *pem.Block
+	for {
+		certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
+		if certDERBlock == nil {
+			break
+		}
+		if certDERBlock.Type == "CERTIFICATE" {
+			cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
+		}
+	}
+
+	if len(cert.Certificate) == 0 {
+		err = errors.New("crypto/tls: failed to parse certificate PEM data")
+		return
+	}
+
+	keyDERBlock, _ := pem.Decode(keyPEMBlock)
+	if keyDERBlock == nil {
+		err = errors.New("crypto/tls: failed to parse key PEM data")
+		return
+	}
+
+	// OpenSSL 0.9.8 generates PKCS#1 private keys by default, while
+	// OpenSSL 1.0.0 generates PKCS#8 keys. We try both.
+	var key *rsa.PrivateKey
+	if key, err = x509.ParsePKCS1PrivateKey(keyDERBlock.Bytes); err != nil {
+		var privKey interface{}
+		if privKey, err = x509.ParsePKCS8PrivateKey(keyDERBlock.Bytes); err != nil {
+			err = errors.New("crypto/tls: failed to parse key: " + err.Error())
+			return
+		}
+
+		var ok bool
+		if key, ok = privKey.(*rsa.PrivateKey); !ok {
+			err = errors.New("crypto/tls: found non-RSA private key in PKCS#8 wrapping")
+			return
+		}
+	}
+
+	cert.PrivateKey = key
+    fmt.Println("CALL local X509KeyPair ended")
+
+	return
 }
