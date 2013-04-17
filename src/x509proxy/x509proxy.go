@@ -58,7 +58,7 @@ func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
             return
         }
         certPEMBlock := getData("CERTIFICATE", certBlock)
-//        fmt.Println(string(certPEMBlock))
+        fmt.Println(string(certPEMBlock))
 
         // read KEY block
         keyBlock, err := ioutil.ReadFile(proxyFile)
@@ -81,10 +81,15 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (cert tls.Certificate, err er
 		if certDERBlock == nil {
 			break
 		}
-		if certDERBlock.Type == "CERTIFICATE" {
-			cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
-		}
+        // parse certificates
+        certs, err2 := x509.ParseCertificates(certDERBlock.Bytes)
+        cert.Leaf = certs[0]
+        fmt.Println("ParseCertificates", certs, len(certs), err2)
+        if certDERBlock.Type == "CERTIFICATE" {
+            cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
+        }
 	}
+    fmt.Println("cert.Certificate, len=", len(cert.Certificate))
 
 	if len(cert.Certificate) == 0 {
 		err = errors.New("crypto/tls: failed to parse certificate PEM data")
