@@ -1,7 +1,7 @@
 package x509proxy
 
 import "io/ioutil"
-import "fmt"
+//import "fmt"
 import "regexp"
 import "crypto/tls"
 import "crypto/x509"
@@ -58,7 +58,7 @@ func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
             return
         }
         certPEMBlock := getData("CERTIFICATE", certBlock)
-        fmt.Println(string(certPEMBlock))
+//        fmt.Println(string(certPEMBlock))
 
         // read KEY block
         keyBlock, err := ioutil.ReadFile(proxyFile)
@@ -74,7 +74,6 @@ func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
 // X509KeyPair parses a public/private key pair from a pair of
 // PEM encoded data.
 func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (cert tls.Certificate, err error) {
-    fmt.Println("CALL local X509KeyPair")
 	var certDERBlock *pem.Block
 	for {
 		certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
@@ -83,13 +82,14 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (cert tls.Certificate, err er
 		}
         // parse certificates
         certs, err2 := x509.ParseCertificates(certDERBlock.Bytes)
-        cert.Leaf = certs[0]
-        fmt.Println("ParseCertificates", certs, len(certs), err2)
+        if  err2 == nil {
+            // assign the Leaf
+            cert.Leaf = certs[0]
+        }
         if certDERBlock.Type == "CERTIFICATE" {
             cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
         }
 	}
-    fmt.Println("cert.Certificate, len=", len(cert.Certificate))
 
 	if len(cert.Certificate) == 0 {
 		err = errors.New("crypto/tls: failed to parse certificate PEM data")
@@ -120,7 +120,6 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (cert tls.Certificate, err er
 	}
 
 	cert.PrivateKey = key
-    fmt.Println("CALL local X509KeyPair ended")
 
 	return
 }
