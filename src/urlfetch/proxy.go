@@ -59,13 +59,14 @@ func Certs() (tls_certs []tls.Certificate) {
 func HttpClient() (client *http.Client) {
     // create HTTP client
     certs := Certs()
-    log.Println("Number of certificates", len(certs), certs)
+    log.Println("Number of certificates", len(certs))
     if  len(certs) == 0 {
         client = &http.Client{}
         return
     }
     tr := &http.Transport{
-        TLSClientConfig: &tls.Config{tls.Certificates: certs},
+        TLSClientConfig: &tls.Config{tls.Certificates: certs,
+                                     tls.InsecureSkipVerify: true},
     }
     log.Println("Create TLSClientConfig")
     client = &http.Client{Transport: tr}
