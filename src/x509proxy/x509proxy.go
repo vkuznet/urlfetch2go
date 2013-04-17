@@ -1,7 +1,14 @@
+/*
+ *
+ * Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
+ * Description: x509 proxy certificate parser utilities
+ * Created    : Wed Mar 20 13:29:48 EDT 2013
+ * License    : MIT
+ *
+ */
 package x509proxy
 
 import "io/ioutil"
-//import "fmt"
 import "regexp"
 import "crypto/tls"
 import "crypto/x509"
@@ -24,6 +31,8 @@ func AppendByte(slice []byte, data []byte) []byte {
     return slice
 }
 
+// Helper function to get specific part of certificate/key file specified by
+// mkey, e.g. CERTIFICATE or KEY
 func getData(mkey string, block []byte) (keyBlock []byte) {
     newline := []byte("\n")
     out := []byte{}
@@ -51,6 +60,8 @@ func getData(mkey string, block []byte) (keyBlock []byte) {
 }
 // LoadX509Proxy reads and parses a chained proxy file
 // which contains PEM encoded data. It returns X509KeyPair.
+// It is slightly modified version of tls.LoadX509Proxy function with addition
+// of custom parse function (getData) for provided proxy file
 func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
         // read CERTIFICATE blocks
         certBlock, err := ioutil.ReadFile(proxyFile)
@@ -58,7 +69,6 @@ func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
             return
         }
         certPEMBlock := getData("CERTIFICATE", certBlock)
-//        fmt.Println(string(certPEMBlock))
 
         // read KEY block
         keyBlock, err := ioutil.ReadFile(proxyFile)
@@ -67,12 +77,12 @@ func LoadX509Proxy(proxyFile string) (cert tls.Certificate, err error) {
         }
         keyPEMBlock := getData("KEY", keyBlock)
 
-//        return tls.X509KeyPair(certPEMBlock, keyPEMBlock)
         return X509KeyPair(certPEMBlock, keyPEMBlock)
 }
 
-// X509KeyPair parses a public/private key pair from a pair of
-// PEM encoded data.
+// X509KeyPair parses a public/private key pair from a pair of PEM encoded
+// data.  It is slightly modified version of tls.X509Proxy where Leaf
+// assignment is made to make proxy certificate works.
 func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (cert tls.Certificate, err error) {
 	var certDERBlock *pem.Block
 	for {
