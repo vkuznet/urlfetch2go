@@ -1,4 +1,5 @@
 GOPATH:=$(PWD)
+export GOPATH
 
 all: build install
 
