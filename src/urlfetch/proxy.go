@@ -18,6 +18,7 @@ import (
     "net/http"
     "io/ioutil"
     "crypto/tls"
+    "regexp"
     "x509proxy"
 )
 
@@ -32,8 +33,7 @@ func Certs() (tls_certs []tls.Certificate) {
     log.Println("X509_USER_KEY", uckey)
     log.Println("X509_USER_CERT", ucert)
     if  len(uproxy) > 0 {
-//        x509cert, err := tls.LoadX509KeyPair(uproxy, uproxy)
-        // use local implementation of LoadX409KeyPair, see x509proxy.go
+        // use local implementation of LoadX409KeyPair instead of tls one
         x509cert, err := x509proxy.LoadX509Proxy(uproxy)
         if  err != nil {
             log.Println("Fail to parser proxy X509 certificate", err)
@@ -82,6 +82,10 @@ var client = HttpClient()
  */
 func Fetch(url string, ch chan<- []byte) {
     msg := ""
+    if  validate_url(url) == false {
+        ch <- []byte(msg)
+        return
+    }
     resp, err := client.Get(url)
     if  err != nil {
         msg = "Fail to contact " + url
@@ -101,10 +105,27 @@ func Fetch(url string, ch chan<- []byte) {
 }
 
 /*
+ * Helper function which validates given URL
+ */
+func validate_url(url string) (bool) {
+    if  len(url) > 0 {
+        pat := "(https|http)://[-A-Za-z0-9_.]*[-A-Za-z0-9]"
+        matched, err := regexp.MatchString(pat, url)
+        if err == nil {
+            if  matched == true {
+                return true
+            }
+        }
+        log.Println("ERROR invalid URL:", url)
+    }
+    return false
+}
+
+/*
  * RequestHandler is used by web server to handle incoming requests
  */
 func RequestHandler(w http.ResponseWriter, r *http.Request) {
-    // we only accept POST request with urls (this is by design)
+    // we only accept POST requests with urls (this is by design)
     if  r.Method != "POST" {
         w.WriteHeader(http.StatusBadRequest)
         return
