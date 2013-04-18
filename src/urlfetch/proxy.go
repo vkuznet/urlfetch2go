@@ -109,7 +109,7 @@ func Fetch(url string, ch chan<- []byte) {
  */
 func validate_url(url string) (bool) {
     if  len(url) > 0 {
-        pat := "(https|http)://[-A-Za-z0-9_.]*[-A-Za-z0-9]"
+        pat := "(https|http)://[-A-Za-z0-9_+&@#/%?=~_|!:,.;]*[-A-Za-z0-9+&@#/%=~_|]"
         matched, err := regexp.MatchString(pat, url)
         if err == nil {
             if  matched == true {
